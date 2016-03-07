@@ -310,6 +310,12 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
                 image = [info objectForKey:UIImagePickerControllerOriginalImage];
             }
             
+            if ([[self.options objectForKey:@"saveToCameraRoll"] boolValue]) {
+                if (self.picker.sourceType == UIImagePickerControllerSourceTypeCamera) {
+                    UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil);
+                }
+            }
+            
             // GIFs break when resized, so we handle them differently
             if (imageURL && [[imageURL absoluteString] rangeOfString:@"ext=GIF"].location != NSNotFound) {
                 ALAssetsLibrary* assetsLibrary = [[ALAssetsLibrary alloc] init];

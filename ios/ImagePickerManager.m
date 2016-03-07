@@ -2,6 +2,8 @@
 #import "RCTConvert.h"
 #import <AssetsLibrary/AssetsLibrary.h>
 
+@import AVFoundation;
+
 @import MobileCoreServices;
 
 @interface ImagePickerManager ()
@@ -200,6 +202,29 @@ RCT_EXPORT_METHOD(showImagePicker:(NSDictionary *)options callback:(RCTResponseS
         self.callback(@[@{@"error": @"Camera not available on simulator"}]);
         return;
 #else
+        NSString *noCameraPermissionsErrorText = [self.options objectForKey:@"noCameraPermissionsErrorText"];
+        if (noCameraPermissionsErrorText) {
+            double delaySeconds = 0.6;
+            dispatch_time_t time = dispatch_time(DISPATCH_TIME_NOW, delaySeconds * NSEC_PER_SEC);
+            dispatch_after(time, dispatch_get_main_queue(), ^{
+                AVAuthorizationStatus authStatus = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
+                if (AVAuthorizationStatusAuthorized != authStatus) {
+                    [AVCaptureDevice requestAccessForMediaType:AVMediaTypeVideo completionHandler:^(BOOL granted) {
+                        if (!granted) {
+                            UIAlertController* alert = [UIAlertController alertControllerWithTitle:noCameraPermissionsErrorText
+                                                                                           message:nil
+                                                                                    preferredStyle:UIAlertControllerStyleAlert];
+                            
+                            UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault
+                                                                                  handler:^(UIAlertAction * action) {}];
+                            [alert addAction:defaultAction];
+                            [self.picker presentViewController:alert animated:YES completion:nil];
+                        }
+                    }];
+                }
+            });
+        }
+        
         self.picker.sourceType = UIImagePickerControllerSourceTypeCamera;
         if ([[self.options objectForKey:@"cameraType"] isEqualToString:@"front"]) {
             self.picker.cameraDevice = UIImagePickerControllerCameraDeviceFront;
